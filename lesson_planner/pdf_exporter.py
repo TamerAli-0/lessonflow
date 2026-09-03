@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
-import tempfile
 from pathlib import Path
 
 import fitz
 
 from .docx_exporter import export_lesson_bundle
+from .office import OfficeConversionError, convert_to_pdf
 
 
 class PdfExportError(RuntimeError):
@@ -34,32 +33,11 @@ def export_pdf_bundle(
         shutil.rmtree(pdf_dir)
     pdf_dir.mkdir(parents=True)
 
-    soffice = shutil.which("soffice")
-    if not soffice:
-        raise PdfExportError("PDF export requires LibreOffice. Word export is still available.")
-
-    with tempfile.TemporaryDirectory(prefix="lessonflow-office-") as profile:
-        profile_uri = Path(profile).resolve().as_uri()
-        for document in sorted(documents_dir.glob("*.docx")):
-            result = subprocess.run(
-                [
-                    soffice,
-                    f"-env:UserInstallation={profile_uri}",
-                    "--headless",
-                    "--convert-to",
-                    "pdf",
-                    "--outdir",
-                    str(pdf_dir),
-                    str(document),
-                ],
-                capture_output=True,
-                text=True,
-                timeout=120,
-                check=False,
-            )
-            if result.returncode != 0 or not (pdf_dir / f"{document.stem}.pdf").exists():
-                detail = (result.stderr or result.stdout or "conversion failed").strip()
-                raise PdfExportError(f"Could not create PDF: {detail}")
+    for document in sorted(documents_dir.glob("*.docx")):
+        try:
+            convert_to_pdf(document, pdf_dir)
+        except OfficeConversionError as exc:
+            raise PdfExportError(str(exc)) from exc
 
     pdfs = sorted(pdf_dir.glob("*.pdf"))
     if not pdfs:

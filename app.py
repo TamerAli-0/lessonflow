@@ -14,9 +14,10 @@ from lesson_planner.ai_providers import (
     list_openrouter_models,
     openrouter_auto_candidates,
 )
-from lesson_planner.docx_exporter import TemplateError
+from lesson_planner.docx_exporter import TemplateError, export_lesson_bundle
 from lesson_planner import progress
 from lesson_planner.job_store import JobStore
+from lesson_planner.office import NO_RENDERER_MESSAGE, renderer_available, renderer_name
 from lesson_planner.pdf_exporter import PdfExportError, build_pdf_hotspots, export_pdf_bundle, render_pdf_pages
 from lesson_planner.planner import (
     analyze_module,
@@ -248,18 +249,26 @@ def export_endpoint():
         store.save_json(job_id, "plan", plan)
         template_path = resolve_template(job_id, template)
         export_dir = store.path(job_id) / "word-export"
-        validation_pdf, _ = export_pdf_bundle(
-            template_path,
-            export_dir,
-            analysis,
-            plan,
-            extraction.get("images", []),
-        )
-        # The template grows with the plan. A longer plan is the teacher's call, so the page
-        # count is reported rather than used to refuse the download.
-        rendered_pdf = fitz.open(validation_pdf)
-        page_count = len(rendered_pdf)
-        rendered_pdf.close()
+        if renderer_available():
+            # Rendering decides one thing: a plan that outgrew two pages is rebuilt without the
+            # designed page break so it flows instead of stranding a near-empty page.
+            export_pdf_bundle(
+                template_path,
+                export_dir,
+                analysis,
+                plan,
+                extraction.get("images", []),
+            )
+        else:
+            # No renderer on this computer. The teacher still gets their lesson plan; only the
+            # page-break reflow is skipped, because nothing here can measure the pages.
+            export_lesson_bundle(
+                template_path,
+                export_dir / "source-docx.zip",
+                analysis,
+                plan,
+                extraction.get("images", []),
+            )
         documents = sorted((export_dir / "lesson-documents").glob("*.docx"))
         if len(documents) != 1:
             raise TemplateError("Expected exactly one generated Word document.")
@@ -360,6 +369,11 @@ def config_endpoint():
         {
             "default_template_available": DEFAULT_TEMPLATE_PATH.is_file(),
             "default_template_name": DEFAULT_TEMPLATE_PATH.name if DEFAULT_TEMPLATE_PATH.is_file() else "",
+            # The page-image preview is drawn by Microsoft Word. Saying so up front beats a
+            # blank preview panel that never explains itself.
+            "preview_available": renderer_available(),
+            "preview_renderer": renderer_name(),
+            "preview_message": "" if renderer_available() else NO_RENDERER_MESSAGE,
         }
     )
 

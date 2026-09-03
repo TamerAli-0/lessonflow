@@ -109,6 +109,11 @@ Open the install folder, `%LOCALAPPDATA%\LessonFlow`, and run
 **The page will not load.**
 Give it a few more seconds, then go to `http://127.0.0.1:5050` yourself.
 
+**The Word preview stays empty.**
+The preview is drawn by Microsoft Word itself, so the review screen needs Word
+on the same computer. Without it everything else still works and the finished
+plan still downloads; only the on-screen page images are unavailable.
+
 ---
 
 ## Uninstall
@@ -131,7 +136,12 @@ python app.py
 
 Then open `http://127.0.0.1:5050`.
 
-Requires Python 3.10 or newer. The Word template ships in
+Requires Python 3.10 or newer. The page-image preview needs a renderer:
+Microsoft Word on Windows, or LibreOffice if that is what the development
+machine already has. Everything else, including the `.docx` download, works
+without one.
+
+The Word template ships in
 `assets/lesson-plan-template.docx` and is picked up automatically. To use a
 different one, set `LESSON_PLANNER_TEMPLATE` to its path or choose it in the
 export card. A different template still needs recognisable section labels such

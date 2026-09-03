@@ -1688,6 +1688,12 @@ async function loadConfig() {
     el("template-name").textContent = state.config.default_template_available
       ? `Built in: ${state.config.default_template_name}`
       : "Choose a .docx template";
+    // Without Microsoft Word the page-image preview cannot be drawn. Say it here rather than
+    // leaving an empty preview panel that looks broken.
+    if (state.config.preview_available === false) {
+      el("preview-status").textContent = state.config.preview_message
+        || "Word preview needs Microsoft Word on this computer";
+    }
   } catch (_) {
     el("template-name").textContent = "Choose a .docx template";
   }

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 import shutil
-import subprocess
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree
@@ -12,6 +11,7 @@ from docx.image.image import Image
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
+from .office import OfficeConversionError, convert_doc_to_docx
 from .pdf_reader import HeadingCandidate, PdfExtraction, PdfPage, deduplicate_candidates, extract_pdf, extract_pdf_images
 
 
@@ -64,23 +64,10 @@ def prepare_word_document(path: str | Path) -> Path:
     converted = source_path.with_name(f"{source_path.stem}-converted.docx")
     if converted.is_file():
         return converted
-    executable = shutil.which("libreoffice") or shutil.which("soffice")
-    if not executable:
-        raise ValueError("Legacy .doc files require LibreOffice. Save the file as .docx and upload it again.")
-    result = subprocess.run(
-        [executable, "--headless", "--convert-to", "docx", "--outdir", str(source_path.parent), str(source_path)],
-        capture_output=True,
-        text=True,
-        timeout=120,
-        check=False,
-    )
-    default_output = source_path.with_suffix(".docx")
-    if default_output.is_file() and default_output != converted:
-        default_output.replace(converted)
-    if result.returncode != 0 or not converted.is_file():
-        detail = (result.stderr or result.stdout or "conversion failed").strip()
-        raise ValueError(f"The legacy .doc file could not be opened: {detail}")
-    return converted
+    try:
+        return convert_doc_to_docx(source_path, converted)
+    except OfficeConversionError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def extract_word_document(

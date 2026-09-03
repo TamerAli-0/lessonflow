@@ -548,9 +548,9 @@ if ($winget) {
 }
 
 if (Test-WordInstalled) {
-    Write-Row 'Microsoft Word' 'OK' 'ready to open finished plans' 'Green'
+    Write-Row 'Microsoft Word' 'OK' 'draws the preview and opens finished plans' 'Green'
 } else {
-    Write-Row 'Microsoft Word' 'NOT FOUND' 'only needed to open the finished file' 'DarkYellow'
+    Write-Row 'Microsoft Word' 'NOT FOUND' 'plans still download, the preview cannot be drawn' 'DarkYellow'
 }
 
 $isUpdate = Test-Path (Join-Path $InstallDir 'app.py')
@@ -576,11 +576,14 @@ if (-not $script:SourceFolder -and -not $script:SourceZip -and $here -and (Test-
     Write-Row 'Program files' 'LOCAL' 'using the folder this script sits in' 'Green'
 }
 
-if (-not $script:SourceFolder -and -not $script:SourceZip) {
+# Re-running the command on a computer that already has LessonFlow means "give me the
+# current version". An older folder sitting in Downloads would quietly undo that, so an
+# update always takes the fresh copy and the offer is only made on a first install.
+if (-not $isUpdate -and -not $script:SourceFolder -and -not $script:SourceZip) {
     $local = Find-DownloadedCopy
     if ($local) {
         Write-Row 'Program files' 'FOUND' ('already on this computer: ' + $local.Path) 'Green'
-        if (Confirm-Action 'Use that copy instead of downloading again?' $true) {
+        if (Confirm-Action 'Use that copy instead of downloading the latest?' $false) {
             if ($local.Kind -eq 'folder') { $script:SourceFolder = $local.Path } else { $script:SourceZip = $local.Path }
         }
     }
