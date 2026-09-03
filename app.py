@@ -249,19 +249,27 @@ def export_endpoint():
         store.save_json(job_id, "plan", plan)
         template_path = resolve_template(job_id, template)
         export_dir = store.path(job_id) / "word-export"
+        rendered = False
         if renderer_available():
             # Rendering decides one thing: a plan that outgrew two pages is rebuilt without the
             # designed page break so it flows instead of stranding a near-empty page.
-            export_pdf_bundle(
-                template_path,
-                export_dir,
-                analysis,
-                plan,
-                extraction.get("images", []),
-            )
-        else:
-            # No renderer on this computer. The teacher still gets their lesson plan; only the
-            # page-break reflow is skipped, because nothing here can measure the pages.
+            try:
+                export_pdf_bundle(
+                    template_path,
+                    export_dir,
+                    analysis,
+                    plan,
+                    extraction.get("images", []),
+                )
+                rendered = True
+            except PdfExportError:
+                # Word is installed but would not render - busy, mid-dialog, or misbehaving.
+                # That is a preview problem, and losing the finished plan over it is not
+                # acceptable, so fall through and build the document without measuring it.
+                app.logger.warning("Falling back to an unmeasured Word export", exc_info=True)
+        if not rendered:
+            # Nothing could measure the pages, so only the page-break reflow is skipped.
+            # The teacher still gets exactly the lesson plan they were looking at.
             export_lesson_bundle(
                 template_path,
                 export_dir / "source-docx.zip",
