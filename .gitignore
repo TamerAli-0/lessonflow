@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv/
+runtime/
+.pytest_cache/
+.coverage
+
+# Kept out of the public repo: these reference local sample material by name.
+HANDOFF.md
+tests/

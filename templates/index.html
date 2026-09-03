@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LessonFlow - PDF to Lesson Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20260903-encoding-outline">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="app-header">
+    <a class="brand" href="#">
+      <span class="brand-mark">LF</span>
+      <span><strong>LessonFlow</strong><small>PDF to lesson plan</small></span>
+    </a>
+    <div class="privacy-pill"><span></span> Runs locally · keys are not stored</div>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">PDF → structured lessons → Word</p>
+        <h1>Turn teaching material into a usable weekly plan.</h1>
+        <p>Upload a teacher module, book, or other teaching document as PDF or Word. For PDFs, choose exactly which physical pages the AI may read; then confirm the topics and export your plan.</p>
+      </div>
+      <div class="hero-stat">
+        <span>3</span>
+        <p>clear steps<br><strong>you approve each one</strong></p>
+      </div>
+    </section>
+
+    <nav class="stepper" aria-label="Workflow">
+      <button class="step active" data-step-target="1"><span>1</span><div>Connect & upload<small>Model and source file</small></div></button>
+      <i></i>
+      <button class="step" data-step-target="2" disabled><span>2</span><div>Review structure<small>Detected titles</small></div></button>
+      <i></i>
+      <button class="step" data-step-target="3" disabled><span>3</span><div>Edit & export<small>Finished plans</small></div></button>
+    </nav>
+
+    <section class="workspace">
+      <article class="panel step-panel active" data-step="1">
+        <div class="panel-heading">
+          <div><span class="section-number">01</span><h2>Connect your AI model</h2></div>
+          <p>Use one legitimate API key. You can switch providers or models at any time.</p>
+        </div>
+
+        <div class="form-grid connection-grid">
+          <label>Provider
+            <select id="provider">
+              <option value="gemini">Google Gemini</option>
+              <option value="groq">Groq</option>
+              <option value="mistral">Mistral</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="custom">Custom OpenAI-compatible</option>
+            </select>
+          </label>
+          <label id="model-wrap">Model
+            <select id="model"></select>
+            <small id="model-help" class="field-help"></small>
+          </label>
+          <div id="auto-model-note" class="auto-model-note hidden">
+            <strong>Model choice is automatic</strong>
+            <small id="auto-model-detail" class="field-help"></small>
+          </div>
+          <label id="custom-model-wrap" class="hidden">Custom model name
+            <input id="custom-model" placeholder="Model ID supplied by the provider" autocomplete="off">
+          </label>
+          <label class="wide-field">API key
+            <div class="secret-field">
+              <input id="api-key" type="password" placeholder="Paste the key for this run" autocomplete="off">
+              <button id="toggle-key" type="button" class="text-button">Show</button>
+            </div>
+          </label>
+          <label id="base-url-wrap" class="wide-field hidden">Base URL
+            <input id="base-url" placeholder="https://example.com/v1" autocomplete="off">
+          </label>
+        </div>
+
+        <hr>
+
+        <div class="panel-heading compact">
+          <div><span class="section-number">02</span><h2>Upload your teaching material</h2></div>
+          <p>PDF, modern Word (.docx), and legacy Word (.doc) are supported. Physical page ranges apply to PDFs.</p>
+        </div>
+
+        <label class="drop-zone" id="module-drop">
+          <input id="module-file" type="file" accept="application/pdf,.pdf,.docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword">
+          <span class="upload-icon">↑</span>
+          <strong>Drop a PDF or Word teaching document here</strong>
+          <small>or click to choose a PDF or Word document · supports .pdf, .docx, and .doc · up to 100 MB</small>
+        </label>
+
+        <div id="uploaded-file-row" class="uploaded-file-row hidden">
+          <div><span>Selected file</span><strong id="module-name"></strong></div>
+          <button id="remove-source" type="button" class="remove-source-button">Remove file</button>
+        </div>
+
+        <div id="source-settings" class="source-settings hidden">
+          <div class="source-settings-heading">
+            <div><strong>Settings for this PDF</strong><small>These settings apply only to the file shown above.</small></div>
+          </div>
+          <div class="form-grid source-settings-grid">
+            <label>What did you upload?
+              <select id="source-type">
+                <option value="module">Teacher module</option>
+                <option value="book">Book or other teaching document</option>
+              </select>
+            </label>
+            <label>What should the AI read?
+              <select id="read-mode">
+                <option value="entire">The entire document</option>
+                <option value="range">Only selected physical PDF pages</option>
+              </select>
+              <small id="read-mode-help" class="field-help"></small>
+            </label>
+            <div id="page-range-fields" class="page-range-fields wide-field hidden">
+              <label>From PDF page<input id="page-from" type="number" min="1" value="1" inputmode="numeric"></label>
+              <label>To PDF page<input id="page-to" type="number" min="1" placeholder="e.g. 20" inputmode="numeric"></label>
+              <p>Use the physical page positions shown by the PDF viewer, including cover and contents pages.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-heading compact settings-heading">
+          <div><span class="section-number">03</span><h2>Set the lesson rules</h2></div>
+          <p>These stay under your control. The model only plans inside them.</p>
+        </div>
+
+        <div class="form-grid settings-grid">
+          <label>Module duration (weeks)<input id="module-weeks" type="number" min="1" max="20" value="2"></label>
+          <label>Minutes per lesson<input id="lesson-minutes" type="number" min="20" max="300" value="100"></label>
+          <label>Lessons per week<input id="lessons-week" type="number" min="1" max="14" value="2"></label>
+          <label class="wide-field">Starting date
+            <div class="date-parts">
+              <input id="start-day" type="number" min="1" max="31" inputmode="numeric" aria-label="Day" placeholder="Day">
+              <select id="start-month" aria-label="Month"></select>
+              <input id="start-year" type="number" min="2000" max="2100" inputmode="numeric" aria-label="Year" placeholder="Year">
+            </div>
+            <input id="start-date" type="hidden">
+            <small id="start-date-echo" class="field-help"></small>
+          </label>
+          <label class="wide-field">Student level / class<input id="student-level" value="Grade 10" placeholder="e.g. Grade 10 / A10[ENI]"></label>
+          <label class="wide-field balance-field">Theory / practical balance
+            <div class="range-line">
+              <span>Theory <strong id="theory-value">50%</strong></span>
+              <input id="theory" type="range" min="0" max="100" step="5" value="50">
+              <span>Practical <strong id="practical-value">50%</strong></span>
+            </div>
+          </label>
+        </div>
+
+        <div class="panel-heading compact controls-heading">
+          <div><span class="section-number">04</span><h2>Optional images</h2></div>
+          <p>One switch. Placement and quantity are handled automatically.</p>
+        </div>
+
+        <div class="control-grid">
+          <label class="switch-card wide-field">
+            <input id="extract-images" type="checkbox">
+            <span class="switch"></span>
+            <span><strong>Use relevant images automatically</strong><small>The AI chooses whether and where a source figure helps. You can remove or replace it later.</small></span>
+          </label>
+          <details class="advanced-options wide-field">
+            <summary>Advanced options</summary>
+            <div class="advanced-grid">
+              <label class="switch-card"><input id="allow-inferred" type="checkbox" checked><span class="switch"></span><span><strong>Allow inferred titles</strong><small>Propose a title when the PDF has none.</small></span></label>
+              <label class="switch-card"><input id="practical-tasks" type="checkbox" checked><span class="switch"></span><span><strong>Use practical tasks</strong><small>Reuse relevant source procedures.</small></span></label>
+              <label class="switch-card"><input id="include-homework" type="checkbox" checked><span class="switch"></span><span><strong>Include home learning</strong><small>Fill the homework area.</small></span></label>
+              <label class="switch-card"><input id="include-reflection" type="checkbox" checked><span class="switch"></span><span><strong>Include reflection</strong><small>Fill the bottom recap.</small></span></label>
+            </div>
+          </details>
+        </div>
+
+        <div class="action-row">
+          <p class="action-note">First the model identifies the real module structure. Nothing is exported yet.</p>
+          <button id="analyze-button" class="primary-button" disabled>Analyze selected material <span>→</span></button>
+        </div>
+      </article>
+
+      <article class="panel step-panel" data-step="2">
+        <div class="panel-heading">
+          <div><span class="section-number">05</span><h2>Review what the AI found</h2></div>
+          <p>Source locations show where each topic was found: physical pages for PDFs and document parts for Word files. They do not create extra output pages.</p>
+        </div>
+        <div id="module-summary" class="module-summary"></div>
+        <div id="warning-list" class="warning-list"></div>
+        <div class="review-topic-toolbar">
+          <div><strong>Selected topics</strong><small>These will be used to build the plan. Drag to change their order or remove anything unnecessary.</small></div>
+          <button id="toggle-topic-library" class="secondary-button" type="button">＋ Add more topics <span id="candidate-count"></span></button>
+        </div>
+        <div id="selection-capacity" class="selection-capacity"></div>
+        <div id="topic-list" class="topic-list"></div>
+        <section id="topic-library" class="topic-library hidden">
+          <div class="topic-library-heading">
+            <div><strong>Other source-backed topics</strong><small>Add only the sections you want included. Descriptions and source locations come from the uploaded selection.</small></div>
+            <button id="close-topic-library" type="button" class="text-button-static">Close</button>
+          </div>
+          <div id="candidate-list" class="candidate-list"></div>
+        </section>
+        <div class="action-row split-actions">
+          <button class="secondary-button" data-go-step="1">← Change upload</button>
+          <button id="generate-button" class="primary-button">Build the lesson plan <span>→</span></button>
+        </div>
+      </article>
+
+      <article class="panel step-panel" data-step="3">
+        <div class="panel-heading">
+          <div><span class="section-number">06</span><h2>Edit the generated plan</h2></div>
+          <p>These are the rendered Word pages. Click highlighted text or an inserted image to edit only that section.</p>
+        </div>
+        <div class="preview-toolbar">
+          <div><span class="preview-dot"></span><strong id="preview-status">Building Word preview…</strong></div>
+          <div class="preview-toolbar-actions">
+            <label class="preview-zoom-control">Preview layout
+              <select id="preview-zoom">
+                <option value="editor">Compact preview + side editor</option>
+                <option value="large" selected>Large preview + side editor</option>
+              </select>
+            </label>
+            <button id="refresh-preview" class="secondary-button" type="button">Refresh Word preview</button>
+          </div>
+        </div>
+        <div class="pdf-review-layout">
+          <div id="pdf-pages" class="pdf-pages"><div class="preview-placeholder">Generating the template preview…</div></div>
+          <aside id="section-inspector" class="section-inspector">
+            <div class="inspector-empty"><span>↖</span><strong>Click a section on the PDF</strong><p>You can edit its text, delete individual items, or ask AI to rewrite only that section.</p></div>
+          </aside>
+        </div>
+
+        <details class="full-editor-details">
+          <summary>Open the full text editor</summary>
+          <p>This is a fallback view. Changes here also appear in the next Word preview.</p>
+          <div id="lesson-list" class="lesson-list"></div>
+        </details>
+
+        <div class="export-card">
+          <div>
+            <p class="eyebrow">Final step</p>
+            <h3>Download the editable Word document</h3>
+            <p>What you reviewed above is written into a copy of the template. Continue editing the `.docx` anywhere later.</p>
+          </div>
+          <label class="template-picker">
+            <input id="template-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+            <span>Template override (optional)</span>
+            <strong id="template-name">Checking built-in template…</strong>
+          </label>
+          <div class="export-buttons">
+            <button id="export-word-button" class="primary-button">Download Word document <span>↓</span></button>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div id="busy" class="busy hidden" role="status" aria-live="polite">
+    <div id="busy-ring" class="busy-ring">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="busy-ring-track" cx="60" cy="60" r="52"></circle>
+        <circle id="busy-ring-value" class="busy-ring-value" cx="60" cy="60" r="52"></circle>
+      </svg>
+      <span id="busy-percent" class="busy-percent">0%</span>
+    </div>
+    <div class="spinner" id="busy-spinner"></div>
+    <strong id="busy-title">Working…</strong>
+    <span id="busy-detail">This may take a minute.</span>
+    <span id="busy-elapsed" class="busy-elapsed"></span>
+    <ul id="busy-steps" class="busy-steps"></ul>
+  </div>
+  <div id="toast" class="toast hidden" role="alert"></div>
+
+  <dialog id="rewrite-dialog" class="rewrite-dialog">
+    <form method="dialog">
+      <div class="dialog-heading">
+        <div><span class="rewrite-mark">✦</span><h3>Rewrite this paragraph</h3></div>
+        <button value="cancel" class="dialog-close" aria-label="Close">×</button>
+      </div>
+      <p id="rewrite-original" class="rewrite-original"></p>
+      <section class="rewrite-suggestions-box">
+        <div class="rewrite-suggestions-heading">
+          <div><strong>5 source-backed choices</strong><small>Based on the uploaded material already analyzed for this lesson.</small></div>
+          <button id="refresh-rewrite-suggestions" type="button" class="text-button-static">Refresh choices</button>
+        </div>
+        <div id="rewrite-suggestions" class="rewrite-suggestions"><div class="suggestions-loading">Preparing five choices…</div></div>
+      </section>
+      <div class="quick-prompts">
+        <button type="button" data-rewrite-prompt="Make this shorter while preserving the technical meaning.">Shorter</button>
+        <button type="button" data-rewrite-prompt="Make this more concise and direct.">More concise</button>
+        <button type="button" data-rewrite-prompt="Use simpler language suitable for the stated student level.">Simpler</button>
+        <button type="button" data-rewrite-prompt="Make this activity more practical and observable without inventing equipment.">More practical</button>
+      </div>
+      <label>Or tell the model exactly what to change
+        <textarea id="rewrite-instruction" placeholder="e.g. Turn this into one short question"></textarea>
+      </label>
+      <button id="generate-rewrite-suggestions" type="button" class="generate-suggestions-button">✦ Generate 5 choices from my instruction</button>
+      <div class="dialog-actions">
+        <button value="cancel" class="secondary-button">Cancel</button>
+        <button id="apply-rewrite" type="button" class="primary-button">Apply rewrite <span>✦</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="{{ url_for('static', filename='app.js') }}?v=20260903-encoding-outline"></script>
+</body>
+</html>
