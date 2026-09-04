@@ -490,6 +490,10 @@ function New-Shortcuts([string]$Target) {
     $made = @()
     try {
         $shell = New-Object -ComObject WScript.Shell
+        # The LF monogram ships in assets\. Fall back to a stock icon rather than
+        # letting a missing file stop the shortcut from being made at all.
+        $icon = Join-Path $InstallDir 'assets\lessonflow.ico'
+        if (-not (Test-Path $icon)) { $icon = $env:SystemRoot + '\System32\shell32.dll,21' }
         $places = @(
             (Join-Path ([Environment]::GetFolderPath('Desktop')) ($AppName + '.lnk')),
             (Join-Path $env:APPDATA ('Microsoft\Windows\Start Menu\Programs\' + $AppName + '.lnk'))
@@ -499,7 +503,7 @@ function New-Shortcuts([string]$Target) {
             $link.TargetPath = $Target
             $link.WorkingDirectory = $InstallDir
             $link.Description = $AppName + ' - build a lesson plan from your teaching material'
-            $link.IconLocation = $env:SystemRoot + '\System32\shell32.dll,21'
+            $link.IconLocation = $icon
             $link.Save()
             $made += $place
         }

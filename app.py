@@ -369,6 +369,15 @@ def preview_endpoint():
         return error_response(f"Preview generation failed: {exc}", 500)
 
 
+@app.get("/favicon.ico")
+def favicon():
+    # The same LF monogram the desktop shortcut uses, so the browser tab matches.
+    icon = BASE_DIR / "assets" / "lessonflow.ico"
+    if not icon.is_file():
+        return ("", 404)
+    return send_file(icon, mimetype="image/x-icon")
+
+
 @app.get("/api/health")
 def health():
     return jsonify({"status": "ok"})
