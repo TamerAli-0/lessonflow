@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+import socket
+import urllib.request
+import webbrowser
 import zipfile
 from pathlib import Path
 
@@ -741,7 +744,40 @@ def error_response(message: str, status: int):
     return jsonify({"error": message}), status
 
 
+def whats_on_the_port(host: str, port: int) -> str:
+    """"free", "lessonflow", or "busy" - what is already listening on this port."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(0.5)
+        if probe.connect_ex((host, port)) != 0:
+            return "free"
+    try:
+        with urllib.request.urlopen(f"http://{host}:{port}/api/health", timeout=2) as reply:
+            if json.loads(reply.read().decode("utf-8")).get("status") == "ok":
+                return "lessonflow"
+    except (OSError, ValueError):
+        pass
+    return "busy"
+
+
 if __name__ == "__main__":
     host = os.environ.get("LESSON_PLANNER_HOST", "127.0.0.1")
     port = int(os.environ.get("LESSON_PLANNER_PORT", "5050"))
+    address = f"http://{host}:{port}"
+    # A teacher who closes the browser tab and then double-clicks the icon again would
+    # otherwise start a second copy, which cannot have the port and prints a stack trace
+    # at them. Hand back the page that is already running instead.
+    occupant = whats_on_the_port(host, port)
+    if occupant == "lessonflow":
+        print()
+        print("  LessonFlow is already running in another window.")
+        print(f"  Opening {address} again - this window is not needed.")
+        print()
+        webbrowser.open(address)
+        raise SystemExit(0)
+    if occupant == "busy":
+        print()
+        print(f"  Another program on this computer is already using port {port}.")
+        print("  Close it, or restart the computer, and start LessonFlow again.")
+        print()
+        raise SystemExit(1)
     app.run(host=host, port=port, debug=False)
